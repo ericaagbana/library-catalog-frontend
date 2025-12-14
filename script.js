@@ -1,6 +1,6 @@
 // Digital Library Frontend - Connected to Backend API
 // API Configuration
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'https://library-catalog-backend-3o6o.onrender.com';
 
 // Helper function to make API calls
 async function apiCall(endpoint, method = 'GET', data = null) {
