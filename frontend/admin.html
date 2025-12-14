@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #435f4a; }
+        .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        .stat-number { font-size: 32px; font-weight: bold; color: #435f4a; margin: 10px 0; }
+        .stat-label { color: #666; font-size: 14px; }
+        .admin-actions { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .form-group textarea { height: 100px; resize: vertical; }
+        .btn-admin { background: #435f4a; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
+        .btn-admin:hover { background: #324a38; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .books-list { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .book-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .book-item:last-child { border-bottom: none; }
+        .book-info h4 { margin: 0 0 5px 0; color: #333; }
+        .book-meta { color: #666; font-size: 14px; }
+        .book-actions { display: flex; gap: 10px; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .edit-btn { background: #ffc107; color: #333; }
+        .delete-btn { background: #dc3545; color: white; }
+        .admin-section { display: none; }
+        .user-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .user-table th, .user-table td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+        .user-table th { background: #f5f5f5; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h2 class="logo">Admin Dashboard</h2>
+            <div class="section">
+                <h3>Navigation</h3>
+                <a href="index.html" class="nav-link">← Back to Catalogue</a>
+                <a href="#" onclick="showSection('dashboard')" class="nav-link">📊 Dashboard</a>
+                <a href="#" onclick="showSection('addBook')" class="nav-link">📚 Add New Book</a>
+                <a href="#" onclick="showSection('manageBooks')" class="nav-link">📖 Manage Books</a>
+                <a href="#" onclick="showSection('users')" class="nav-link">👥 Manage Users</a>
+            </div>
+            <div class="section">
+                <h3>Quick Stats</h3>
+                <div id="quickStats"><p>Loading statistics...</p></div>
+            </div>
+            <div class="section">
+                <button class="btn-admin" onclick="logoutUser()" style="width: 100%;">Logout</button>
+            </div>
+        </aside>
+        
+        <main class="content">
+            <div class="admin-header">
+                <h2>Library Administration</h2>
+                <div class="profile">
+                    <img src="pfp.jpeg" alt="profile picture">
+                    <span id="adminName">Loading...</span>
+                </div>
+            </div>
+            
+            <div id="dashboardSection" class="admin-section">
+                <h3>📊 Overview</h3>
+                <div class="admin-stats">
+                    <div class="stat-card"><div class="stat-number" id="totalBooks">0</div><div class="stat-label">Total Books</div></div>
+                    <div class="stat-card"><div class="stat-number" id="availableBooks">0</div><div class="stat-label">Available Books</div></div>
+                    <div class="stat-card"><div class="stat-number" id="totalUsers">0</div><div class="stat-label">Total Users</div></div>
+                    <div class="stat-card"><div class="stat-number" id="activeBorrows">0</div><div class="stat-label">Active Borrows</div></div>
+                </div>
+                <div class="admin-actions">
+                    <h4>Quick Actions</h4>
+                    <button class="btn-admin" onclick="showSection('addBook')">➕ Add New Book</button>
+                    <button class="btn-admin" onclick="loadBooksAdmin()">🔄 Refresh Books List</button>
+                    <button class="btn-admin" onclick="showSection('users')">👥 View All Users</button>
+                </div>
+            </div>
+            
+            <div id="addBookSection" class="admin-section">
+                <h3>📚 Add New Book</h3>
+                <div class="admin-actions">
+                    <form id="addBookForm">
+                        <div class="form-grid">
+                            <div class="form-group"><label for="bookTitle">Title *</label><input type="text" id="bookTitle" required></div>
+                            <div class="form-group"><label for="bookAuthor">Author *</label><input type="text" id="bookAuthor" required></div>
+                            <div class="form-group"><label for="bookISBN">ISBN</label><input type="text" id="bookISBN"></div>
+                            <div class="form-group"><label for="bookCategory">Category</label>
+                                <select id="bookCategory">
+                                    <option value="Fiction">Fiction</option><option value="Nonfiction">Nonfiction</option>
+                                    <option value="Business">Business</option><option value="Technology">Technology</option>
+                                    <option value="Science">Science</option><option value="Biography">Biography</option>
+                                    <option value="Mystery">Mystery</option><option value="Self-help">Self-help</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label for="bookCopies">Copies *</label><input type="number" id="bookCopies" value="1" min="1" required></div>
+                            <div class="form-group"><label for="bookYear">Year</label><input type="number" id="bookYear" min="1900" max="2025"></div>
+                        </div>
+                        <div class="form-group"><label for="bookDescription">Description</label><textarea id="bookDescription"></textarea></div>
+                        <button type="button" class="btn-admin" onclick="addBookAdmin()">Add Book</button>
+                        <button type="button" class="btn-admin" onclick="resetBookForm()" style="background: #6c757d;">Clear Form</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="manageBooksSection" class="admin-section">
+                <h3>📖 Manage Books</h3>
+                <div class="books-list">
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" id="searchBooks" placeholder="Search books..." style="width: 300px; padding: 10px;">
+                        <button class="btn-admin" onclick="searchBooksAdmin()">Search</button>
+                        <button class="btn-admin" onclick="loadBooksAdmin()" style="background: #6c757d;">Show All</button>
+                    </div>
+                    <div id="booksList"><p>Loading books...</p></div>
+                </div>
+            </div>
+            
+            <div id="usersSection" class="admin-section">
+                <h3>👥 Manage Users</h3>
+                <div class="admin-actions">
+                    <div id="usersList"><p>Loading users...</p></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+    <script>
+    // Admin dashboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        initAdminDashboard();
+    });
+    
+    async function initAdminDashboard() {
+        // Check admin access
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const token = localStorage.getItem('token');
+        if (!user || !token || user.role !== 'admin') {
+            alert('Admin access required. Redirecting...');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        document.getElementById('adminName').textContent = user.email + ' (Admin)';
+        
+        // Load dashboard
+        await loadDashboardStats();
+        await loadBooksAdmin();
+        await loadUsersAdmin();
+        showSection('dashboard');
+    }
+    
+    function showSection(sectionId) {
+        document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+        document.getElementById(sectionId + 'Section').style.display = 'block';
+    }
+    
+    async function loadDashboardStats() {
+        try {
+            const books = await loadBooks();
+            document.getElementById('totalBooks').textContent = books.length;
+            const available = books.reduce((sum, book) => sum + book.available_copies, 0);
+            document.getElementById('availableBooks').textContent = available;
+            
+            // Try to get users count from API
+            try {
+                const users = await loadAllUsers();
+                document.getElementById('totalUsers').textContent = users.length;
+                document.getElementById('quickStats').innerHTML = `
+                    <p>📚 Books: ${books.length}</p>
+                    <p>👥 Users: ${users.length}</p>
+                    <p>✅ Available: ${available}</p>
+                `;
+            } catch (userError) {
+                document.getElementById('totalUsers').textContent = '?';
+                document.getElementById('quickStats').innerHTML = `
+                    <p>📚 Books: ${books.length}</p>
+                    <p>✅ Available: ${available}</p>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+    }
+    
+    async function loadBooksAdmin() {
+        try {
+            const books = await loadBooks();
+            displayBooksList(books);
+        } catch (error) {
+            document.getElementById('booksList').innerHTML = '<p>Error loading books</p>';
+        }
+    }
+    
+    function displayBooksList(books) {
+        const container = document.getElementById('booksList');
+        if (!books || books.length === 0) {
+            container.innerHTML = '<p>No books found</p>';
+            return;
+        }
+        
+        let html = '';
+        books.forEach(book => {
+            html += `<div class="book-item">
+                <div class="book-info">
+                    <h4>${book.title}</h4>
+                    <div class="book-meta">Author: ${book.author} | Category: ${book.category} | Copies: ${book.available_copies}/${book.copies}</div>
+                </div>
+                <div class="book-actions">
+                    <button class="action-btn edit-btn" onclick="editBookAdmin(${book.id})">Edit</button>
+                    <button class="action-btn delete-btn" onclick="deleteBookAdmin(${book.id})">Delete</button>
+                </div>
+            </div>`;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    async function loadUsersAdmin() {
+        try {
+            const users = await loadAllUsers();
+            displayUsersList(users);
+        } catch (error) {
+            console.error('Error loading users:', error);
+            document.getElementById('usersList').innerHTML = 
+                '<p>Error loading users. Please check console for details.</p>';
+        }
+    }
+    
+    function displayUsersList(users) {
+        const container = document.getElementById('usersList');
+        if (!users || users.length === 0) {
+            container.innerHTML = '<p>No users found</p>';
+            return;
+        }
+        
+        let html = '<table class="user-table">';
+        html += `
+            <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        `;
+        
+        users.forEach(user => {
+            html += `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>${user.email}</td>
+                    <td>${user.name || '-'}</td>
+                    <td>
+                        <span style="background: ${user.role === 'admin' ? '#435f4a' : '#6c757d'}; 
+                              color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
+                            ${user.role}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn edit-btn" onclick="editUserAdmin(${user.id})">Edit</button>
+                        ${user.role !== 'admin' ? 
+                            `<button class="action-btn delete-btn" onclick="deleteUserAdmin(${user.id})">Delete</button>` : 
+                            ''
+                        }
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</table>';
+        container.innerHTML = html;
+    }
+    
+    async function addBookAdmin() {
+        const bookData = {
+            title: document.getElementById('bookTitle').value,
+            author: document.getElementById('bookAuthor').value,
+            isbn: document.getElementById('bookISBN').value || null,
+            category: document.getElementById('bookCategory').value,
+            copies: parseInt(document.getElementById('bookCopies').value),
+            description: document.getElementById('bookDescription').value || '',
+            available_copies: parseInt(document.getElementById('bookCopies').value)
+        };
+        
+        try {
+            await apiCall('/api/books', 'POST', bookData);
+            alert('Book added successfully!');
+            resetBookForm();
+            await loadBooksAdmin();
+            await loadDashboardStats();
+            showSection('manageBooks');
+        } catch (error) {
+            alert('Error adding book: ' + error.message);
+        }
+    }
+    
+    async function editBookAdmin(bookId) {
+        alert('Edit book feature - Book ID: ' + bookId);
+        // Implementation would go here
+    }
+    
+    async function deleteBookAdmin(bookId) {
+        if (!confirm('Are you sure you want to delete this book?')) return;
+        
+        try {
+            await apiCall(`/api/books/${bookId}`, 'DELETE');
+            alert('Book deleted successfully!');
+            await loadBooksAdmin();
+            await loadDashboardStats();
+        } catch (error) {
+            alert('Error deleting book: ' + error.message);
+        }
+    }
+    
+    async function editUserAdmin(userId) {
+        alert('Edit user feature - User ID: ' + userId);
+        // Implementation would go here
+    }
+    
+    async function deleteUserAdmin(userId) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
+        
+        try {
+            await apiCall(`/api/users/${userId}`, 'DELETE');
+            alert('User deleted successfully!');
+            await loadUsersAdmin();
+            await loadDashboardStats();
+        } catch (error) {
+            alert('Error deleting user: ' + error.message);
+        }
+    }
+    
+    function resetBookForm() {
+        document.getElementById('addBookForm').reset();
+    }
+    
+    function searchBooksAdmin() {
+        const term = document.getElementById('searchBooks').value.toLowerCase();
+        const items = document.querySelectorAll('.book-item');
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(term) ? 'flex' : 'none';
+        });
+    }
+    
+    // Make functions global
+    window.showSection = showSection;
+    window.loadBooksAdmin = loadBooksAdmin;
+    window.loadUsersAdmin = loadUsersAdmin;
+    window.addBookAdmin = addBookAdmin;
+    window.editBookAdmin = editBookAdmin;
+    window.deleteBookAdmin = deleteBookAdmin;
+    window.editUserAdmin = editUserAdmin;
+    window.deleteUserAdmin = deleteUserAdmin;
+    window.resetBookForm = resetBookForm;
+    window.searchBooksAdmin = searchBooksAdmin;
+    </script>
+</body>
+</html>

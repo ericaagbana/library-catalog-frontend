@@ -1,0 +1,573 @@
+// Digital Library Frontend - Connected to Backend API
+// API Configuration
+const API_BASE_URL = 'http://localhost:5001';
+
+// Helper function to make API calls
+async function apiCall(endpoint, method = 'GET', data = null) {
+  const options = {
+    method: method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+
+  // Add token if available
+  const token = localStorage.getItem('token');
+  if (token) {
+    options.headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Add data for POST/PUT requests
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || result.message || 'API request failed');
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('API Error:', error.message);
+    throw error;
+  }
+}
+
+// =============== AUTHENTICATION FUNCTIONS ===================
+
+// Register user
+async function registerUser() {
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value.trim();
+  
+  if (!email || !password) {
+    alert('Please fill in all fields');
+    return;
+  }
+
+  try {
+    const data = await apiCall('/api/auth/register', 'POST', {
+      email: email,
+      password: password,
+      name: email.split('@')[0] // Simple name from email
+    });
+    
+    alert('Registration successful! Please login.');
+    window.location.href = 'login.html';
+  } catch (error) {
+    alert('Registration failed: ' + error.message);
+  }
+}
+
+// Login user
+async function loginUser() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  
+  if (!email || !password) {
+    alert('Please fill in all fields');
+    return;
+  }
+
+  try {
+    const data = await apiCall('/api/auth/login', 'POST', {
+      email: email,
+      password: password
+    });
+    
+    // Save token and user info
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    
+    alert('Login successful!');
+    
+    // Redirect based on user role
+    if (data.user.role === 'admin') {
+      window.location.href = 'admin.html';
+    } else {
+      window.location.href = 'index.html';
+    }
+    
+  } catch (error) {
+    alert('Login failed: ' + error.message);
+  }
+}
+
+// Logout user
+function logoutUser() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = 'login.html';
+}
+
+// Check if user is logged in
+function checkLogin() {
+  const token = localStorage.getItem('token');
+  const user = localStorage.getItem('user');
+  
+  if (!token || !user) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  
+  return JSON.parse(user);
+}
+
+// Check admin access
+function checkAdminAccess() {
+  const user = checkLogin();
+  if (user && user.role !== 'admin') {
+    alert('Admin access required. Redirecting...');
+    window.location.href = 'index.html';
+  }
+  return user;
+}
+
+// =============== BOOK FUNCTIONS ===================
+
+// Load books from backend
+async function loadBooks() {
+  try {
+    const data = await apiCall('/api/books');
+    return data;
+  } catch (error) {
+    console.error('Failed to load books:', error);
+    return [];
+  }
+}
+
+// Load book statistics
+async function loadBookStats() {
+  try {
+    const data = await apiCall('/api/books/stats/overview');
+    return data;
+  } catch (error) {
+    console.error('Failed to load stats:', error);
+    return null;
+  }
+}
+
+// Add new book (Admin only)
+async function addNewBook(bookData) {
+  try {
+    const data = await apiCall('/api/books', 'POST', bookData);
+    return data;
+  } catch (error) {
+    console.error('Failed to add book:', error);
+    throw error;
+  }
+}
+
+// Delete book (Admin only)
+async function deleteBookById(bookId) {
+  try {
+    const data = await apiCall(`/api/books/${bookId}`, 'DELETE');
+    return data;
+  } catch (error) {
+    console.error('Failed to delete book:', error);
+    throw error;
+  }
+}
+
+// =============== USER FUNCTIONS ===================
+
+// Load all users (Admin only)
+async function loadAllUsers() {
+  try {
+    const data = await apiCall('/api/users');
+    return data;
+  } catch (error) {
+    console.error('Failed to load users:', error);
+    return [];
+  }
+}
+
+// Load user statistics (Admin only)
+async function loadUserStats() {
+  try {
+    const data = await apiCall('/api/users/stats');
+    return data;
+  } catch (error) {
+    console.error('Failed to load user stats:', error);
+    return null;
+  }
+}
+
+// =============== UI HELPER FUNCTIONS ===================
+
+// Toggle dropdown menu
+function toggleMenu() {
+  const menu = document.getElementById('menu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const menu = document.getElementById('menu');
+  const profile = document.querySelector('.profile');
+  
+  if (menu && profile && !profile.contains(event.target)) {
+    menu.style.display = 'none';
+  }
+});
+
+// Set username on page load
+function setUsername() {
+  const userSpan = document.querySelector('.username');
+  if (userSpan) {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (user) {
+      userSpan.textContent = user.name || user.email;
+      
+      // Show admin link if user is admin
+      const adminLink = document.getElementById('adminLink');
+      if (adminLink && user.role === 'admin') {
+        adminLink.style.display = 'inline-block';
+      }
+    }
+  }
+}
+
+// Display books on page
+async function displayBooks() {
+  const books = document.getElementById("books");
+  if (!books) return;
+  
+  books.innerHTML = '<p>Loading books...</p>';
+  
+  try {
+    const books = await loadBooks();
+    
+    if (books.length === 0) {
+      books.innerHTML = '<p>No books available</p>';
+      return;
+    }
+    
+    let html = '<div class="books-grid">';
+    books.forEach(book => {
+      const available = book.available_copies > 0;
+      html += `
+        <div class="book-card">
+          <div class="book-cover">
+            <div class="cover-placeholder">${book.title.charAt(0)}</div>
+          </div>
+          <div class="book-info">
+            <h4 class="book-title">${book.title}</h4>
+            <p class="book-author">${book.author}</p>
+            <p class="book-category">${book.category}</p>
+            <p class="book-status ${available ? 'available' : 'unavailable'}">
+              ${available ? '✓ Available' : '✗ Checked out'}
+            </p>
+            <p class="book-copies">Copies: ${book.available_copies}/${book.copies}</p>
+            ${available ? 
+              `<button class="borrow-btn" onclick="borrowBook(${book.id})">Borrow</button>` : 
+              `<button class="borrow-btn disabled" disabled>Unavailable</button>`
+            }
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    
+    books.innerHTML = html;
+  } catch (error) {
+    books.innerHTML = '<p>Error loading books</p>';
+  }
+}
+
+// Initialize page when loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Set username if on any page
+  setUsername();
+  
+  // Load books if on index page
+  if (window.location.pathname.includes('index.html')) {
+    displayBooks();
+  }
+  
+  // Check login for protected pages
+  if (window.location.pathname.includes('index.html') || 
+      window.location.pathname.includes('admin.html')) {
+    checkLogin();
+  }
+});
+
+// Make functions available globally
+window.registerUser = registerUser;
+window.loginUser = loginUser;
+window.logoutUser = logoutUser;
+window.toggleMenu = toggleMenu;
+window.checkLogin = checkLogin;
+window.checkAdminAccess = checkAdminAccess;
+window.loadBooks = loadBooks;
+window.loadBookStats = loadBookStats;
+window.addNewBook = addNewBook;
+window.deleteBookById = deleteBookById;
+window.loadAllUsers = loadAllUsers;
+window.loadUserStats = loadUserStats;
+window.displayBooks = displayBooks;
+window.borrowBook = borrowBook;
+
+// =============== BORROWING FUNCTIONS ===================
+
+// Borrow a book
+async function borrowBook(bookId) {
+  if (!confirm('Borrow this book for 14 days?')) {
+    return;
+  }
+  
+  try {
+    const data = await apiCall(`/api/borrow/${bookId}`, 'POST');
+    alert(data.message + '\n' + (data.reminder || ''));
+    
+    // Refresh books display
+    if (window.location.pathname.includes('index.html')) {
+      displayBooks();
+    }
+  } catch (error) {
+    alert('Borrow failed: ' + error.message);
+  }
+}
+
+// Return a book
+async function returnBook(borrowId) {
+  if (!confirm('Return this book?')) {
+    return;
+  }
+  
+  try {
+    const data = await apiCall(`/api/borrow/return/${borrowId}`, 'POST');
+    alert(data.message + '\n' + (data.fine_message || ''));
+    
+    // Refresh borrowed books list
+    if (window.loadMyBorrowedBooks) {
+      window.loadMyBorrowedBooks();
+    }
+  } catch (error) {
+    alert('Return failed: ' + error.message);
+  }
+}
+
+// Get user's borrowed books
+async function getMyBorrowedBooks() {
+  try {
+    const data = await apiCall('/api/borrow/my-books');
+    return data;
+  } catch (error) {
+    console.error('Failed to load borrowed books:', error);
+    return [];
+  }
+}
+
+// Load and display borrowed books on mybooks.html
+async function loadAndDisplayBorrowedBooks() {
+  const container = document.getElementById('borrowedBooks');
+  if (!container) return;
+  
+  container.innerHTML = '<p>Loading your borrowed books...</p>';
+  
+  try {
+    const borrowedBooks = await getMyBorrowedBooks();
+    
+    if (borrowedBooks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <h3>📚 No Borrowed Books</h3>
+          <p>You haven't borrowed any books yet.</p>
+          <a href="index.html" class="btn-admin">Browse Books</a>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = '<div class="borrowed-books-list">';
+    
+    borrowedBooks.forEach(record => {
+      const isOverdue = record.current_status === 'overdue';
+      const isReturned = record.current_status === 'returned';
+      const dueDate = new Date(record.due_date).toLocaleDateString();
+      const borrowDate = new Date(record.borrow_date).toLocaleDateString();
+      
+      html += `
+        <div class="borrowed-book-card ${isOverdue ? 'overdue' : ''} ${isReturned ? 'returned' : ''}">
+          <div class="book-info">
+            <h4>${record.title}</h4>
+            <p class="author">${record.author}</p>
+            <div class="borrow-details">
+              <p><strong>Borrowed:</strong> ${borrowDate}</p>
+              <p><strong>Due:</strong> ${dueDate}</p>
+              <p><strong>Status:</strong> 
+                <span class="status-badge ${record.current_status}">
+                  ${record.current_status.toUpperCase()}
+                </span>
+              </p>
+              ${record.fine_amount > 0 ? 
+                `<p><strong>Fine:</strong> $${record.fine_amount.toFixed(2)} 
+                 ${record.fine_paid ? '(Paid)' : '(Unpaid)'}</p>` : ''}
+              ${record.return_date ? 
+                `<p><strong>Returned:</strong> ${new Date(record.return_date).toLocaleDateString()}</p>` : ''}
+            </div>
+          </div>
+          
+          <div class="borrow-actions">
+            ${!isReturned ? 
+              `<button class="action-btn return-btn" onclick="returnBook(${record.borrow_id})">
+                Return Book
+              </button>` : 
+              '<span class="returned-label">✓ Returned</span>'
+            }
+            ${isOverdue && !record.fine_paid ? 
+              `<button class="action-btn pay-btn" onclick="payFine(${record.borrow_id})">
+                Pay $${record.fine_amount.toFixed(2)} Fine
+              </button>` : ''
+            }
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+  } catch (error) {
+    container.innerHTML = '<p>Error loading borrowed books. Please try again.</p>';
+  }
+}
+
+// Pay fine (placeholder)
+function payFine(borrowId) {
+  alert('Fine payment feature coming soon! Borrow ID: ' + borrowId);
+  // In a real system, this would integrate with a payment gateway
+}
+
+// Update the borrow button in displayBooks function
+// We need to update the displayBooks function to use the new borrowBook function
+// First, let's find where displayBooks is defined
+
+// =============== FILTER FUNCTIONS ===================
+
+// Filter books based on search and category
+function filterBooks() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    
+    if (!window.allBooks || window.allBooks.length === 0) {
+        return;
+    }
+    
+    const filteredBooks = window.allBooks.filter(book => {
+        const matchesSearch = !searchTerm || 
+            book.title.toLowerCase().includes(searchTerm) || 
+            book.author.toLowerCase().includes(searchTerm);
+        
+        const matchesCategory = !category || book.category === category;
+        
+        return matchesSearch && matchesCategory;
+    });
+    
+    displayAllBooks(filteredBooks);
+}
+
+// Filter by category from quick links
+function filterByCategory(category) {
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.value = category;
+        filterBooks();
+    }
+}
+
+// Display books (for filtering)
+function displayAllBooks(books) {
+    const container = document.getElementById('books');
+    
+    if (!books || books.length === 0) {
+        container.innerHTML = '<p>No books found.</p>';
+        return;
+    }
+    
+    let html = '';
+    books.forEach(book => {
+        const available = book.available_copies > 0;
+        html += `
+            <div class="book-card" data-category="${book.category}">
+                <div class="book-cover">
+                    <div class="cover-placeholder">${book.title.charAt(0)}</div>
+                </div>
+                <div class="book-info">
+                    <h4 class="book-title">${book.title}</h4>
+                    <p class="book-author">${book.author}</p>
+                    <p class="book-category">${book.category}</p>
+                    <p class="book-status ${available ? 'available' : 'unavailable'}">
+                        ${available ? '✓ Available' : '✗ Checked out'}
+                    </p>
+                    <p class="book-copies">Copies: ${book.available_copies}/${book.copies}</p>
+                    ${available ? 
+                        `<button class="borrow-btn" onclick="borrowBook(${book.id})">Borrow</button>` : 
+                        `<button class="borrow-btn disabled" disabled>Unavailable</button>`
+                    }
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Update the displayBooks function to store books globally
+async function displayBooks() {
+    const books = await loadBooks();
+    window.allBooks = books; // Store for filtering
+    displayAllBooks(books);
+}
+
+// Make functions global
+window.filterBooks = filterBooks;
+window.filterByCategory = filterByCategory;
+window.displayAllBooks = displayAllBooks;
+
+// =============== ADMIN FUNCTIONS ===================
+
+// Load all users (admin only)
+async function loadAllUsers() {
+  try {
+    const data = await apiCall('/api/users');
+    return data;
+  } catch (error) {
+    console.error('Error loading users:', error);
+    return [];
+  }
+}
+
+// Delete a book (admin only)
+async function deleteBookAdmin(bookId) {
+  try {
+    const result = await apiCall(`/api/books/${bookId}`, 'DELETE');
+    return result;
+  } catch (error) {
+    console.error('Error deleting book:', error);
+    throw error;
+  }
+}
+
+// Update a book (admin only)
+async function updateBookAdmin(bookId, bookData) {
+  try {
+    const result = await apiCall(`/api/books/${bookId}`, 'PUT', bookData);
+    return result;
+  } catch (error) {
+    console.error('Error updating book:', error);
+    throw error;
+  }
+}
+
+// Make functions global
+window.loadAllUsers = loadAllUsers;
+window.deleteBookAdmin = deleteBookAdmin;
+window.updateBookAdmin = updateBookAdmin;
