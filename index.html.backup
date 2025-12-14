@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Library Catalogue</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body onload="checkLogin(); loadAndDisplayBooks();">
+
+<div class="container">
+
+     <!-- sidebar for navigation and filters -->
+    <aside class="sidebar">
+        <h2 class="logo">Campus Digital Library Catalogue</h2>
+
+        <div class="section">
+            <h3>Search</h3>
+            <input type="text" id="searchInput" placeholder="Keyword, title, author" onkeyup="filterBooks()">
+            <select id="categoryFilter" onchange="filterBooks()">
+                <option value="">All Categories</option>
+                <option value="Self-help">Self-help</option>
+                <option value="Business">Business</option>
+                <option value="Fiction">Fiction</option>
+                <option value="Mystery">Mystery</option>
+                <option value="Biography">Biography</option>
+            </select>
+            <button onclick="filterBooks()">Search</button>
+        </div>
+
+        <div class="section">
+            <h3>Genre</h3>
+            <label><input type="checkbox" value="Fiction" onchange="filterBooks()"> Fiction</label>
+            <label><input type="checkbox" value="Nonfiction" onchange="filterBooks()"> Nonfiction</label>
+            <label><input type="checkbox" value="Fantasy" onchange="filterBooks()"> Fantasy</label>
+            <label><input type="checkbox" value="Mystery" onchange="filterBooks()"> Mystery</label>
+            <label><input type="checkbox" value="Technology" onchange="filterBooks()"> Technology</label>
+            <label><input type="checkbox" value="History" onchange="filterBooks()"> History</label>
+            <label><input type="checkbox" value="Engineering" onchange="filterBooks()"> Engineering</label>
+            <label><input type="checkbox" value="Business" onchange="filterBooks()"> Business</label>
+        </div>
+
+        <div class="section">
+            <h3>Format</h3>
+            <label><input type="checkbox"> Hard-back</label>
+            <label><input type="checkbox"> E-Book</label>
+            <label><input type="checkbox"> Audiobook</label>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+        <div class="subheader">
+        <div class="header">
+            <h2>Catalogue</h2>
+           
+            <div class="profile" onclick="toggleMenu()">
+                <img src="pfp.jpeg" alt="profile picture">
+                <span class="username"></span>
+            
+                <div id="menu" class="dropdown-menu">
+                    <a href="mybooks.html">My Borrowed Books</a>
+                    <a href="#" id="adminLink" style="display: none;">Admin Dashboard</a>
+                    <a href="#">Settings</a>
+                    <a href="#" onclick="logoutUser()">Logout</a>
+                </div>
+            </div>
+            
+        </div>
+            <h3>Book of the week</h3>
+        </div>
+
+        <!-- Featured Book -->
+        <div class="featured">
+            <img src="tjl.jpeg" alt="book">
+            <div>
+                <h3>The Judge's List</h3>
+                <p>John Grisham</p>
+                <p class="featured-desc">A thrilling legal mystery from the master of courtroom drama</p>
+            </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="quick-links">
+            <div class="ql-item" onclick="filterByCategory('Mystery')">Mystery →</div>
+            <div class="ql-item" onclick="filterByCategory('Fiction')">Fiction →</div>
+            <div class="ql-item" onclick="filterByCategory('Business')">Business →</div>
+        </div>
+
+        <!-- Books from API will go here -->
+        <h3 class="subheading">Available Books</h3>
+        <div id="books" class="books-grid">
+            <p>Loading books from library...</p>
+        </div>
+
+        <!-- Static sections (keep for design) -->
+        <h3 class="subheading" style="margin-top: 30px;">Popular Categories</h3>
+        <div class="books-row">
+            <div class="book-category">
+                <div class="category-icon">📚</div>
+                <p class="title">Fiction</p>
+            </div>
+            <div class="book-category">
+                <div class="category-icon">💼</div>
+                <p class="title">Business</p>
+            </div>
+            <div class="book-category">
+                <div class="category-icon">🔬</div>
+                <p class="title">Technology</p>
+            </div>
+            <div class="book-category">
+                <div class="category-icon">📖</div>
+                <p class="title">Biography</p>
+            </div>
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Additional JavaScript for index page -->
+<script>
+// Store all books
+let allBooks = [];
+
+// Load and display books
+async function loadAndDisplayBooks() {
+    try {
+        const books = await loadBooks();
+        allBooks = books;
+        displayAllBooks(books);
+    } catch (error) {
+        document.getElementById('booksContainer').innerHTML = 
+            '<p>Error loading books. Please try again later.</p>';
+    }
+}
+
+// Display books in the container
+function displayAllBooks(books) {
+    const container = document.getElementById('booksContainer');
+    
+    if (!books || books.length === 0) {
+        container.innerHTML = '<p>No books available in the library.</p>';
+        return;
+    }
+    
+    let html = '';
+    books.forEach(book => {
+        const available = book.available_copies > 0;
+        html += `
+            <div class="book-card" data-category="${book.category}">
+                <div class="book-cover">
+                    <div class="cover-placeholder">${book.title.charAt(0)}</div>
+                </div>
+                <div class="book-info">
+                    <h4 class="book-title">${book.title}</h4>
+                    <p class="book-author">${book.author}</p>
+                    <p class="book-category">${book.category}</p>
+                    <p class="book-status ${available ? 'available' : 'unavailable'}">
+                        ${available ? '✓ Available' : '✗ Checked out'}
+                    </p>
+                    <p class="book-copies">Copies: ${book.available_copies}/${book.copies}</p>
+                    ${available ? 
+                        `<button class="borrow-btn" onclick="borrowBook(${book.id})">Borrow</button>` : 
+                        `<button class="borrow-btn disabled" disabled>Unavailable</button>`
+                    }
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Filter books based on search and category
+function filterBooks() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    
+    const filteredBooks = allBooks.filter(book => {
+        const matchesSearch = !searchTerm || 
+            book.title.toLowerCase().includes(searchTerm) || 
+            book.author.toLowerCase().includes(searchTerm);
+        
+        const matchesCategory = !category || book.category === category;
+        
+        return matchesSearch && matchesCategory;
+    });
+    
+    displayAllBooks(filteredBooks);
+}
+
+// Filter by category from quick links
+function filterByCategory(category) {
+    document.getElementById('categoryFilter').value = category;
+    filterBooks();
+}
+
+// Borrow a book (placeholder - will implement later)
+function borrowBook(bookId) {
+    alert('Borrow feature coming soon! Book ID: ' + bookId);
+    // Will connect to backend API later
+}
+
+// Set username when page loads
+window.onload = function() {
+    const user = localStorage.getItem('user');
+    if (user) {
+        const userObj = JSON.parse(user);
+        const usernameElement = document.querySelector('.username');
+        if (usernameElement) {
+            usernameElement.textContent = userObj.email || 'Library User';
+        }
+    }
+};
+</script>
+
+</body>
+</html>

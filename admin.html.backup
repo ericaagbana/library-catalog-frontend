@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Digital Library</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body onload="checkAdminAccess()">
+    <div class="container">
+        <aside class="sidebar">
+            <h2 class="logo">Admin Dashboard</h2>
+            
+            <div class="section">
+                <h3>Navigation</h3>
+                <a href="index.html" class="nav-link">← Back to Catalogue</a>
+                <a href="admin.html" class="nav-link">←📊 Back to Dashboard</a>
+                <a href="#" onclick="showSection('addBook')" class="nav-link">📚 Add New Book</a>
+                <a href="#" onclick="showSection('manageBooks')" class="nav-link">📖 Manage Books</a>
+                <a href="#" onclick="showSection('users')" class="nav-link">👥 Manage Users</a>
+            </div>
+            
+            <div class="section">
+                <h3>Quick Stats</h3>
+                <div id="quickStats">
+                    <p>Loading statistics...</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <button class="btn-admin" onclick="logoutUser()" style="width: 100%;">Logout</button>
+            </div>
+        </aside>
+        
+        <main class="content">
+            <div class="admin-header">
+                <h2>Library Administration</h2>
+                <div class="profile">
+                    <img src="pfp.jpeg" alt="profile picture">
+                    <span id="adminName">Loading...</span>
+                </div>
+            </div>
+            
+            <!-- Dashboard Section -->
+            <div id="dashboardSection" class="admin-section">
+                <h3>📊 Overview</h3>
+                
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalBooks">0</div>
+                        <div class="stat-label">Total Books</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="availableBooks">0</div>
+                        <div class="stat-label">Available Books</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeBorrows">0</div>
+                        <div class="stat-label">Active Borrows</div>
+                    </div>
+                </div>
+                
+                <div class="admin-actions">
+                    <h4>Quick Actions</h4>
+                    <button class="btn-admin" onclick="showSection('addBook')">➕ Add New Book</button>
+                    <button class="btn-admin" onclick="loadAllBooks()">🔄 Refresh Books List</button>
+                    <button class="btn-admin" onclick="showSection('users')">👥 View All Users</button>
+                </div>
+            </div>
+            
+            <!-- Add Book Section -->
+            <div id="addBookSection" class="admin-section" style="display: none;">
+                <h3>📚 Add New Book</h3>
+                
+                <div class="admin-actions">
+                    <form id="addBookForm" onsubmit="event.preventDefault(); addBook();">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="bookTitle">Title *</label>
+                                <input type="text" id="bookTitle" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bookAuthor">Author *</label>
+                                <input type="text" id="bookAuthor" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bookISBN">ISBN</label>
+                                <input type="text" id="bookISBN">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bookCategory">Category</label>
+                                <select id="bookCategory">
+                                    <option value="Fiction">Fiction</option>
+                                    <option value="Nonfiction">Nonfiction</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Science">Science</option>
+                                    <option value="Biography">Biography</option>
+                                    <option value="Mystery">Mystery</option>
+                                    <option value="Self-help">Self-help</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bookCopies">Number of Copies *</label>
+                                <input type="number" id="bookCopies" value="1" min="1" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bookYear">Publication Year</label>
+                                <input type="number" id="bookYear" min="1900" max="2025">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bookDescription">Description</label>
+                            <textarea id="bookDescription" placeholder="Enter book description..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn-admin">Add Book to Library</button>
+                        <button type="button" class="btn-admin" onclick="clearBookForm()" style="background: #6c757d;">Clear Form</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Manage Books Section -->
+            <div id="manageBooksSection" class="admin-section" style="display: none;">
+                <h3>📖 Manage Books</h3>
+                
+                <div class="books-list">
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" id="searchBooks" placeholder="Search books..." style="width: 300px; padding: 10px;">
+                        <button class="btn-admin" onclick="searchBooks()">Search</button>
+                        <button class="btn-admin" onclick="loadAllBooks()" style="background: #6c757d;">Show All</button>
+                    </div>
+                    
+                    <div id="booksList">
+                        <p>Loading books...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Manage Users Section -->
+            <div id="usersSection" class="admin-section" style="display: none;">
+                <h3>👥 Manage Users</h3>
+                
+                <div class="admin-actions">
+                    <div id="usersList">
+                        <p>Loading users...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+<script>
+/* ================= ADMIN DASHBOARD SCRIPT ================= */
+
+let currentUser = null;
+let allBooks = [];
+
+/* ---------- ACCESS CONTROL ---------- */
+function checkAdminAccess() {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const token = localStorage.getItem('token');
+
+    if (!user || !token || user.role !== 'admin') {
+        alert('Admin access required. Redirecting to login...');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    currentUser = user;
+    document.getElementById('adminName').textContent = user.email + ' (Admin)';
+
+    loadDashboardStats();
+    loadAllBooks();
+    loadAllUsers();
+    showSection('dashboard');
+}
+
+/* ---------- SECTION TOGGLING ---------- */
+function showSection(sectionId) {
+    document.querySelectorAll('.admin-section').forEach(sec => {
+        sec.style.display = 'none';
+    });
+    document.getElementById(sectionId + 'Section').style.display = 'block';
+}
+
+/* ---------- DASHBOARD STATS ---------- */
+async function loadDashboardStats() {
+    try {
+        const books = await loadBooks();
+        const users = await loadUsers();
+
+        document.getElementById('totalBooks').textContent = books.length;
+        document.getElementById('availableBooks').textContent =
+            books.reduce((sum, b) => sum + b.available_copies, 0);
+
+        document.getElementById('totalUsers').textContent = users.length;
+        document.getElementById('activeBorrows').textContent = '0';
+
+        document.getElementById('quickStats').innerHTML = `
+            <p>📚 Books: ${books.length}</p>
+            <p>👥 Users: ${users.length}</p>
+            <p>✅ Available: ${books.reduce((s,b)=>s+b.available_copies,0)}</p>
+        `;
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/* ---------- BOOK MANAGEMENT ---------- */
+async function loadAllBooks() {
+    try {
+        allBooks = await loadBooks();
+        displayBooksList(allBooks);
+    } catch {
+        document.getElementById('booksList').innerHTML = '<p>Error loading books</p>';
+    }
+}
+
+function displayBooksList(books) {
+    const container = document.getElementById('booksList');
+    if (!books.length) {
+        container.innerHTML = '<p>No books found</p>';
+        return;
+    }
+
+    container.innerHTML = books.map(book => `
+        <div class="book-item">
+            <div>
+                <h4>${book.title}</h4>
+                <p>Author: ${book.author} | Category: ${book.category}</p>
+                <p>Copies: ${book.available_copies}/${book.copies}</p>
+            </div>
+            <div>
+                <button onclick="editBook(${book.id})">Edit</button>
+                <button onclick="deleteBook(${book.id})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function searchBooks() {
+    const term = document.getElementById('searchBooks').value.toLowerCase();
+    if (!term) return displayBooksList(allBooks);
+
+    displayBooksList(
+        allBooks.filter(b =>
+            b.title.toLowerCase().includes(term) ||
+            b.author.toLowerCase().includes(term)
+        )
+    );
+}
+
+async function addBook() {
+    const bookData = {
+        title: bookTitle.value,
+        author: bookAuthor.value,
+        isbn: bookISBN.value || null,
+        category: bookCategory.value,
+        copies: Number(bookCopies.value),
+        description: bookDescription.value || '',
+        available_copies: Number(bookCopies.value)
+    };
+
+    try {
+        await apiCall('/api/books', 'POST', bookData);
+        alert('Book added!');
+        resetBookForm();
+        loadAllBooks();
+        loadDashboardStats();
+        showSection('manageBooks');
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function resetBookForm() {
+    document.getElementById('addBookForm').reset();
+}
+
+/* ---------- USER MANAGEMENT ---------- */
+async function loadAllUsers() {
+    try {
+        const users = await loadUsers();
+        displayUsersList(users);
+    } catch {
+        document.getElementById('usersList').innerHTML = '<p>Error loading users</p>';
+    }
+}
+
+function displayUsersList(users) {
+    const container = document.getElementById('usersList');
+    container.innerHTML = users.map(u => `
+        <p>${u.email} (${u.role})</p>
+    `).join('');
+}
+
+/* ---------- PLACEHOLDERS ---------- */
+function editBook(id) { alert('Edit book ' + id); }
+function deleteBook(id) { alert('Delete book ' + id); }
+function editUser(id) { alert('Edit user ' + id); }
+function deleteUser(id) { alert('Delete user ' + id); }
+
+/* ---------- TEMP USERS (BACKEND READY) ---------- */
+async function loadUsers() {
+    return [
+        { id: 1, email: 'admin@library.com', role: 'admin' },
+        { id: 2, email: 'student@test.com', role: 'student' }
+    ];
+}
+
+/* ---------- EXPORT ---------- */
+window.checkAdminAccess = checkAdminAccess;
+window.showSection = showSection;
+window.addBook = addBook;
+window.searchBooks = searchBooks;
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Users API</title>
+</head>
+<body>
+    <h1>Test Users API</h1>
+    <button onclick="testUsers()">Test Load Users</button>
+    <div id="result"></div>
+    
+    <script>
+    const API_BASE_URL = 'http://localhost:5001';
+    
+    async function apiCall(endpoint, method = 'GET', data = null) {
+        const options = {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        
+        const token = localStorage.getItem('token');
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        if (data) {
+            options.body = JSON.stringify(data);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'API request failed');
+        }
+        
+        return result;
+    }
+    
+    async function testUsers() {
+        try {
+            const users = await apiCall('/api/users');
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<h3>Success! Found ${users.length} users:</h3>`;
+            users.forEach(user => {
+                resultDiv.innerHTML += `<p>${user.id}: ${user.email} (${user.role})</p>`;
+            });
+        } catch (error) {
+            document.getElementById('result').innerHTML = 
+                `<p style="color: red;">Error: ${error.message}</p>`;
+        }
+    }
+    
+    // Check if user is logged in
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const token = localStorage.getItem('token');
+    
+    if (!user || !token) {
+        document.getElementById('result').innerHTML = 
+            '<p style="color: red;">Please login as admin first!</p>' +
+            '<p>Go to login.html and login as admin@campus.edu / admin123</p>';
+    } else {
+        document.getElementById('result').innerHTML = 
+            `<p>Logged in as: ${user.email} (${user.role})</p>`;
+        if (user.role !== 'admin') {
+            document.getElementById('result').innerHTML += 
+                '<p style="color: red;">You need to be admin to view users!</p>';
+        }
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Digital Library</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+<div class="login-box">
+    <h2>Digital Library Login</h2>
+    
+    <form onsubmit="event.preventDefault(); loginUser();">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="Enter email" required>
+        
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" required>
+        
+        <button type="submit">Login</button>
+        
+        <p class="small-text">
+            Don't have an account? <a href="register.html">Register here</a>
+        </p>
+    </form>
+    
+    <div id="message" class="message"></div>
+</div>
+
+<!-- Include the script -->
+<script src="script.js"></script>
+
+<script>
+// Simple message display
+function showMessage(text, isError = false) {
+    const msg = document.getElementById('message');
+    if (msg) {
+        msg.textContent = text;
+        msg.style.color = isError ? 'red' : 'green';
+        msg.style.display = 'block';
+    }
+}
+</script>
+
+</body>
+</html>
