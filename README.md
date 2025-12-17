@@ -1,4 +1,4 @@
-# Digital_Library-frontend-
+# library_Catalog-frontend
 Frontend for a Digital Library Catalogue System, built with HTML, CSS, and JavaScript, featuring user authentication UI, responsive design, and API integration.
 
  A Digital Library Catalogue System – Frontend
